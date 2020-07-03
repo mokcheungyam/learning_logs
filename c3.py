@@ -79,6 +79,47 @@ plt.show()
 
 
 
+# 加载路透社数据集
+from keras.datasets import reuters
+
+(train_data, train_labels), (test_data, test_labels) = reuters.load_data(num_words=10000)
+
+# 将索引解码为新闻文本
+word_index = reuters.get_word_index()
+reverse_word_index = dict([(v, k) for k, v in word_index.items()])
+decoded_newswire = ' '.join([reverse_word_index.get(i - 3, '?') for i in train_data[0]])
+
+# 编码数据
+import numpy as np
+
+def vectorize_sequences(sequence, dimension=10000):
+    results = np.zeros((len(sequneces), dimension))
+    for i, sequnece in enumerate(sequneces):
+        results[i, sequnece] = 1.
+    return results
+
+x_train = vectorize_sequences(train_data)
+x_test = vectorize_sequences(test_data)
+
+
+def on_one_hot(labels, dimension=46):
+    results = np.zeros(len(labels), dimension)
+    for i, label in enumerate(labels):
+        results[i, label] = 1.
+    return results
+
+one_hot_train_labels = to_one_hot(train_labels)
+one_hot_test_labels = to_one_hot(test_data)
+
+
+from keras.utils.np_utils import to_categorical
+
+one_hot_train_labels = to_categorical(train_labels)
+one_hot_test_labels = to_categorical(test_labels)
+
+model.compile(optimizer='rmsprop',
+            loss='categorical_crossentropy',
+            metrics=['accuracy'])
 
 
 
@@ -86,56 +127,55 @@ plt.show()
 
 
 
+from keras.datasets import boston_housing
 
+(train_data, train_targets), (test_data, test_targets) = boston_housing.load_data()
 
+mean = train_data.mean(axis=0)
+train_data -= mean
+std = train_data.std(axis=0)
+train_data /= std
 
+test_data -= mean
+test_data /= std
 
+from keras import models
+from keras import layers
 
+def build_model():
+    model = models.Sequential()
+    model.add(layers.Dense(64, activation='relu', input_shape=(train_data.shape[1],)))
+    model.add(layers.Dense(64, activation='relu'))
+    model.add(layers.Dense(1))
+    model.compile(optimizer='rmsprop', loss='mse', metrics=['mae'])
+    return model
 
+import numpy as np
 
+k = 4
+num_val_samples = len(train_data) // k
+num_epochs = 100
+all_scores = []
 
+for i in range(k):
+    print('processing flod #', i)
+    val_data = train_data[i * num_val_samples: (i + 1) * num_val_samples]
+    val_targets = train_targets[i * num_val_samples: (i + 1) * num_val_samples]
 
+    partial_train_data = np.concatenate(
+        [train_data[:i * num_val_samples],
+         train_data[(i + 1) * num_val_samples:]],
+         axis=0
+        )
 
+    partial_train_targets = np.concatenate(
+        [train_targets[:i * num_val_samples],
+         train_targets[(i + 1) * num_val_samples:]],
+         axis=0
+        )
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    model = build_model()
+    model.fit(partial_train_data, partial_train_targets,
+        epochs=num_epochs, batch_size=1, verbose=0)
+    val_mse, val_mae = moels.evaluate(val_data, val_targets, verbose=0)
+    all_scores.append(val_mae)
