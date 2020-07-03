@@ -59,117 +59,22 @@ model.add(layers.Dense(4, acitvation='relu'))
 model.add(layers.Dense(1, activation='sigmoid'))
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# 向模型添加L2权重正则化
+from keras import regularizers
+
+model = models.Sequential()
+model.add(layers.Dense(16, kernel_regularizer=regularizers.l2(0.001),
+    activation='relu', input_shape=(10000,)))
+model.add(layers.Dense(16, kernel_regularizer=regularizers.l2(0.001),
+    activation='relu'))
+model.add(layers.Dense(1, activation='sigmoid'))
+
+
+# 添加dropout
+model = models.Sequential()
+model.add(layers.Dense(16, activation='relu', input_shape=(10000,)))
+modle.add(layers.Dropout(0.5))
+model.add(layers.Dense(16, activation='relu')
+modle.add(layers.Dropout(0.5))
+model.add(layers.Dense(1, acitvation='sigmoid'))
 
