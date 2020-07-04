@@ -480,6 +480,118 @@ grads = K.gradients(loss, model.input)[0]
 grads /= (K.sqrt(K.mean(k.square(grads))) + 1e-5)
 
 
+# 给定numpy输入值，得到numpy输出值
+iterate = K.function([model.input], [loss, grads])
+
+import numpy as np
+loss_value, grads_value = iterate([np.zeros((1, 150, 150, 3))])
+
+# 通过随机梯度下降使得损失最大化
+input_img_data = np.random.random((1, 150, 150, 3)) * 20 + 128.
+step = 1.  # 每次梯度更新的步长
+for i in range(40):
+    loss_value, grads_value = iterate([input_img_data])
+
+    input_img_data += grads_value * step
+
+# 将张量转换为有效图像的实用函数
+def deprocess_image(x):
+    x -= x.mean()
+    x /= (x.std() + 1e-5)
+    x *= 0.1
+
+    x += 0.5
+    x = np.clip(x, 0, 1)
+
+    x *= 255
+    x = np.clip(x, 0, 255).astype('uint8')
+    return x
+
+# 生成过滤器可视化函数
+def generate_pattern(layer_name, filter_index, size=150):
+    layer_output = model.get_layer(layer_name).output
+    loss = K.mean(layer_output[:, :, :, filter_index])
+
+    grads = K.gradients(loss, model.input)[0]  # 计算这个损失相对于输入图像的梯度
+    grads /= (K.sqrt(K.mean(K.square(grads))) + 1e-5)  # 梯度标准化
+    iterate = K.function([model.input], [loss, grads])  # 返回给定输入图像的损失和梯度
+    input_img_data = np.random.random((1, size, size, 3)) * 20 + 128.
+
+    step = 1.
+    for i in range(40):
+        loss_value, grads_value = iterate([input_img_data])
+        input_img_data += grads_value * step
+
+    img = input_img_data[0]
+    return deprocess_image(img)
+
+
+# 加载带有预训练权重的VGG16网络
+from keras.applications.vgg16 import VGG16
+
+model = VGG16(weights='imagenet')
+
+# 为VGG16模型预处理一张输入图像
+from keras.preprocessing import image
+from keras.applications.vgg16 import preprocess_input, decode_predictions
+import numpy as np
+
+img_path = '/Users/fchollet/Downloads/creative_commons_elephant.jpg'
+
+x = image.img_to_array(img)
+x = np.expand_dims(x, axis=0)
+x = preprocess_input(x)
+
+# 应用Grad-CAM算法
+african_elephant_output = model.output[:, 386]
+last_conv_layer = model.get_layer('block5_conv3')
+
+grads = K.gradients(african_elephant_output, last_conv_layer.output)[0]
+
+pooled_grads = K.mean(grads, axis=(0, 1, 2))
+
+iterate = K.function([model.input], [pooled_grads, last_conv_layer.output[0]])
+
+pooled_grads_value, conv_layer_output_value = iterate([x])
+
+for i in range(512):
+    conv_layer_output_value[:, :, i] *= polled_grads_value[i]
+
+heatmap = np.mean(conv_layer_output_value, axis=-1)
+
+# 热力图后处理
+heatmap = np.maximum(heatmap, 0)
+heatmap /= np.max(heatmap)
+plt.matshow(heatmap)
+
+# 将热力图与原始图像叠加
+import cv2
+img = cv2.imread(img_path)
+heatmap = cv2.resize(heatmap, (img.shape[1], img.shape[0]))
+heatmap = np.uint8(255 * heatmap)
+superimposed_img = heatmap * 0.4 + img
+cv2.imwrite('/Users/fchollet/Downloads/elephant_cam.jpg', superimposed_img)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
