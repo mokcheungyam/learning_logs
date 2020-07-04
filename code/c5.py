@@ -460,6 +460,28 @@ for layer_name, layer_activation in zip(layer_names, activations):
     plt.imshow(display_grid, aspect='auto', cmap='viridis')
 
 
+# 为过滤器的可视化定义损失张量
+from keras.applications import VGG16
+from keras import backend as keras
+
+model = VGG16(weights='imagenet', include_top=False)
+
+layer_name = 'block3_conv1'
+filter_index = 0
+
+layer_output = model.get_layer(layer_name).output
+loss = K.mean(layer_output[:, :, :, filter_index])
+
+
+# 获取损失相对于输入的梯度
+grads = K.gradients(loss, model.input)[0]
+
+# 梯度标准化技巧
+grads /= (K.sqrt(K.mean(k.square(grads))) + 1e-5)
+
+
+
+
 
 
 
